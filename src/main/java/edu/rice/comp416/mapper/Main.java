@@ -1,4 +1,4 @@
-package mapper;
+package edu.rice.comp416.mapper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -19,7 +19,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            printHelp();
+            printCmdHelp();
             System.exit(64);
         } else {
             List<String> cmdline = Arrays.asList(args);
@@ -29,16 +29,17 @@ public class Main {
             } else if (cmdline.contains("-e")) {
                 eFlag = true;
                 readFiles(args[args.length - 2], args[args.length - 1]);
-            } 
-            else if (cmdline.contains("-x")) xFlag = true;
-             
+            } else if (cmdline.contains("-x")) xFlag = true;
         }
     }
 
     private static void printCmdHelp() {
-        String x = "-e: description of e function\n" +
-                "-x: description of x function \n" + 
-                "provide a fastq file (first) and reference (last) \n"; // clean this up for command line args
+        String x =
+                "-e: description of e function\n"
+                        + "-x: description of x function \n"
+                        + "provide a fastq file (first) and reference (last) \n"; // clean this up
+        // for command
+        // line args
         System.out.println(x);
     }
 
@@ -48,7 +49,9 @@ public class Main {
         byte[] FASTQBytes = Files.readAllBytes(Paths.get(FASTQPath));
 
         // call the mapper
-        runMapping(new String(refBytes, Charset.defaultCharset()), new String(FASTQBytes, Charset.defaultCharset()));
+        runMapping(
+                new String(refBytes, Charset.defaultCharset()),
+                new String(FASTQBytes, Charset.defaultCharset()));
         if (hadError) System.exit(69);
     }
 
@@ -56,10 +59,11 @@ public class Main {
 
         // run basic mapping and whatever algorithms and such
         Mapping mapping = new Mapping(ref, inputFile);
-    
-        if(eFlag) {
+
+        if (eFlag) {
             // include additional functionality here
-        } else if(xFlag) {
+        } else if (xFlag) {
             // additional function here
         }
     }
+}

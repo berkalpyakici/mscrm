@@ -16,13 +16,18 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.biojava</groupId>
             <artifactId>biojava-core</artifactId>
-            <version>5.3.0</version>
+            <version>5.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.biojava</groupId>
+            <artifactId>biojava-genome</artifactId>
+            <version>6.0.0</version>
         </dependency>
     </dependencies>
 

@@ -10,15 +10,18 @@ public class ReadFastaTest {
     @Test
     public void testRefRead() throws Exception {
         String file =
-                Objects.requireNonNull(this.getClass().getClassLoader().getResource("ref.fasta"))
+                Objects.requireNonNull(
+                                this.getClass()
+                                        .getClassLoader()
+                                        .getResource("sars_cov_2_reference_genome.fasta"))
                         .getFile();
 
         LinkedHashMap<String, DNASequence> fasta = ReadFasta.readFromFile(file);
         DNASequence seq =
                 fasta.get(
-                        "NZ_CP044031.1 Orientia tsutsugamushi strain Wuj/2014 chromosome, complete"
-                                + " genome");
+                        "NC_045512.2 Severe acute respiratory syndrome coronavirus 2 isolate"
+                                + " Wuhan-Hu-1, complete genome");
 
-        Assert.assertEquals(600615, seq.getGCCount());
+        Assert.assertEquals(11355, seq.getGCCount());
     }
 }

@@ -4,13 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Utilities for Burrows-Wheeler transform.
- */
+/** Utilities for Burrows-Wheeler transform. */
 public class BWT {
 
     /**
      * Get the Burrows–Wheeler transform of input sequence.
+     *
      * @param s Input sequence.
      * @return Burrows-Wheeler transform of the input sequence.
      */
@@ -38,6 +37,7 @@ public class BWT {
 
     /**
      * Get original sequence from its Burrows-Wheeler transform.
+     *
      * @param bwt Burrows-wheeler transform.
      * @return Original sequence from bwt.
      */
@@ -65,6 +65,7 @@ public class BWT {
 
     /**
      * Get a rotation of the given string.
+     *
      * @param s String to rotate.
      * @param offset Number of characters to shift by.
      * @return Rotation of s with the given offset.

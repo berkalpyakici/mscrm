@@ -1,69 +1,110 @@
 package edu.rice.comp416.mapper;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Main {
-
-    // ex are just examples because I assume we will want command line parameters
-    private static boolean hadError = false;
-    private static boolean eFlag = false;
-    private static boolean xFlag = false;
-
-    // a help flag to print support
-    private static boolean hFlag = false;
-
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         if (args.length == 0) {
-            printCmdHelp();
-            System.exit(64);
-        } else {
-            List<String> cmdline = Arrays.asList(args);
-            if (cmdline.contains("-h") || args[args.length - 1].matches("-[ex]")) {
-                printCmdHelp();
-                System.exit(69);
-            } else if (cmdline.contains("-e")) {
-                eFlag = true;
-                readFiles(args[args.length - 2], args[args.length - 1]);
-            } else if (cmdline.contains("-x")) xFlag = true;
+            reportError(
+                    "No parameters given.\n\tTry '-h' for information on command-line syntax.\n");
+            printHelpMessage();
+            System.exit(1);
+        }
+
+        // Parse all flags.
+        Set<Character> flags = new HashSet<>();
+
+        for (String arg : args) {
+            if (arg.length() == 2 && arg.startsWith("-")) {
+                flags.add(arg.charAt(1));
+            }
+        }
+
+        if (flags.contains('h')) {
+            printHelpMessage();
+            System.exit(0);
+        }
+
+        // Parse sample files and reference file.
+        List<String> sampleFiles = new ArrayList<>();
+        String refFile = "";
+
+        for (String arg : args) {
+            if (arg.endsWith(".fasta")) {
+                if (refFile.isBlank()) {
+                    refFile = arg;
+                } else {
+                    reportError(
+                            "Can only supply one reference file.\n"
+                                    + "\tTry '-h' for information on command-line syntax.\n");
+                    printHelpMessage();
+                    System.exit(1);
+                }
+            } else if (arg.endsWith(".fastq")) {
+                sampleFiles.add(arg);
+            }
+        }
+
+        if (refFile.isBlank()) {
+            reportError(
+                    "A reference file must be supplied.\n"
+                            + "\tTry '-h' for information on command-line syntax.\n");
+            printHelpMessage();
+            System.exit(1);
+        }
+
+        if (sampleFiles.isEmpty()) {
+            reportError(
+                    "At least one sample file must be supplied.\n"
+                            + "\tTry '-h' for information on command-line syntax.\n");
+            printHelpMessage();
+            System.exit(1);
+        }
+
+        Mapper mapper;
+        try {
+            mapper = new Mapper(refFile, sampleFiles);
+        } catch (FileNotFoundException e) {
+            reportError(e.getMessage());
+            System.exit(1);
+        } catch (IOException e) {
+            reportError(
+                    "Failed to process input files when initializing mapper. See the stack tree"
+                            + " for more information.\n");
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 
-    private static void printCmdHelp() {
-        String x =
-                "-e: description of e function\n"
-                        + "-x: description of x function \n"
-                        + "provide a fastq file (first) and reference (last) \n"; // clean this up
-        // for command
-        // line args
-        System.out.println(x);
+    public static void reportMessage(String message) {
+        System.out.println(message);
     }
 
-    private static void readFiles(String refPath, String FASTQPath) throws IOException {
-        // i don't think this it the correct way to read in fastq in java but just a placeholder
-        byte[] refBytes = Files.readAllBytes(Paths.get(refPath));
-        byte[] FASTQBytes = Files.readAllBytes(Paths.get(FASTQPath));
-
-        // call the mapper
-        runMapping(
-                new String(refBytes, Charset.defaultCharset()),
-                new String(FASTQBytes, Charset.defaultCharset()));
-        if (hadError) System.exit(69);
+    public static void reportError(String message) {
+        System.err.println(message);
     }
 
-    private static void runMapping(String ref, String inputFile) {
-
-        // run basic mapping and whatever algorithms and such
-        Mapping mapping = new Mapping(ref, inputFile);
-
-        if (eFlag) {
-            // include additional functionality here
-        } else if (xFlag) {
-            // additional function here
-        }
+    /** Prints help message to console. */
+    private static void printHelpMessage() {
+        String helpMessage =
+                "Genome-Scale Mapper (Katherine Dyson, Elizabeth Sims, Berk Alp Yakici)\n"
+                    + "Command syntax:\n"
+                    + "\tmap [OPTIONS] REF SAMPLE [SAMPLE SAMPLE...]\n"
+                    + "\n"
+                    + "Required arguments:\n"
+                    + "\tREF is the pathname (absolute or relative) to the reference fastq file\n"
+                    + "\tSAMPLE is the pathname (absolute or relative) to the sample fasta file\n"
+                    + "\n"
+                    + "Optional flags:\n"
+                    + "\t-h\t  prints this message\n"
+                    + "\n"
+                    + "Example use:\n"
+                    + "\tmap reference.fasta sample1.fastq sample2.fastq";
+        System.out.println(helpMessage);
     }
 }

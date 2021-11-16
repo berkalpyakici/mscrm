@@ -43,12 +43,12 @@ public class BWT {
      */
     public static String decode(String bwt) {
         List<String> suffixes = new ArrayList<>();
-        for (int i = 0; i < bwt.length(); ++i) {
+        for (int i = 0; i < bwt.length(); i++) {
             suffixes.add("");
         }
 
         while (suffixes.get(0).length() < bwt.length()) {
-            for (int i = 0; i < bwt.length(); ++i) {
+            for (int i = 0; i < bwt.length(); i++) {
                 suffixes.set(i, bwt.charAt(i) + suffixes.get(i));
             }
             Collections.sort(suffixes);

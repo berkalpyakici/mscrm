@@ -67,6 +67,11 @@ public class Trie {
         return getNodeFromString(s).getLocs();
     }
 
+    /**
+     * Get a string to print the trie, starting from its root.
+     *
+     * @return String that represents the trie starting from its root.
+     */
     public String toString() {
         return this.g.toString();
     }
@@ -111,32 +116,67 @@ public class Trie {
         private final List<Node> n;
         private final List<Integer> loc;
 
+        /**
+         * Construct a new node.
+         *
+         * @param c Character to represent.
+         */
         public Node(Character c) {
             this.c = c;
             this.n = new ArrayList<>();
             this.loc = new ArrayList<>();
         }
 
+        /**
+         * Get children of the current node.
+         *
+         * @return List of nodes, each representing a child.
+         */
         public List<Node> getChildren() {
             return this.n;
         }
 
+        /**
+         * Add a new child to this node.
+         *
+         * @param node Node to add as a child.
+         */
         public void addChild(Node node) {
             this.n.add(node);
         }
 
+        /**
+         * Get the character represented by the current node.
+         *
+         * @return Character represented by the node.
+         */
         public Character getC() {
             return this.c;
         }
 
+        /**
+         * Get list of locations that string building up to this node from root are found in.
+         *
+         * @return List of locations.
+         */
         public List<Integer> getLocs() {
             return this.loc;
         }
 
+        /**
+         * Add a new location that string building up to this node from root are found in.
+         *
+         * @param newLoc New location to add.
+         */
         public void addLoc(int newLoc) {
             this.loc.add(newLoc);
         }
 
+        /**
+         * Get a string to print the trie starting from current node.
+         *
+         * @return String that represents the trie starting from the current node.
+         */
         public String toString() {
             StringBuilder string = new StringBuilder();
 

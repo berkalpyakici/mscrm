@@ -48,6 +48,16 @@ public class Trie {
     }
 
     /**
+     * Build trie from given kmers.
+     *
+     * @param kmers List of kmers.
+     * @return An instance of Trie build from given kmers.
+     */
+    public static Trie fromKmers(List<String> kmers) {
+        return fromKmers(kmers, 0);
+    }
+
+    /**
      * Check if the trie contains the string.
      *
      * @param s String to search.

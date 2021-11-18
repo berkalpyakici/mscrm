@@ -66,7 +66,7 @@ public class Main {
             System.exit(1);
         }
 
-        Mapper mapper;
+        Mapper mapper = null;
         try {
             mapper = new Mapper(refFile, sampleFiles);
         } catch (FileNotFoundException e) {
@@ -79,6 +79,8 @@ public class Main {
             e.printStackTrace();
             System.exit(1);
         }
+
+        mapper.generateReferenceKmerTrie(13);
     }
 
     public static void reportMessage(String message) {

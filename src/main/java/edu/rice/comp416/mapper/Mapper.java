@@ -2,6 +2,7 @@ package edu.rice.comp416.mapper;
 
 import edu.rice.comp416.mapper.reader.ReadFasta;
 import edu.rice.comp416.mapper.reader.ReadFastq;
+import edu.rice.comp416.mapper.util.Timer;
 import edu.rice.comp416.mapper.util.Transform;
 import edu.rice.comp416.mapper.util.Trie;
 import java.io.IOException;
@@ -32,13 +33,29 @@ public class Mapper {
      * @throws IOException If an exception occurs when fasta and fastq files are being read.
      */
     public Mapper(String referenceFile, List<String> sampleFiles) throws IOException {
+        Timer referenceLoadTimer = new Timer();
         this.reference = ReadFasta.readFromFile(referenceFile);
-        this.referenceTrie = new ArrayList<>();
+        referenceLoadTimer.stop();
 
+        Timer samplesLoadTimer = new Timer();
         this.samples = new ArrayList<>();
         for (String sampleFile : sampleFiles) {
             this.samples.add(ReadFastq.readFromFile(sampleFile));
         }
+        samplesLoadTimer.stop();
+
+        this.referenceTrie = new ArrayList<>();
+
+        System.out.println(
+                "Loaded reference sequence in "
+                        + referenceLoadTimer.getTimeInSeconds()
+                        + " seconds.");
+        System.out.println(
+                "Loaded "
+                        + this.samples.size()
+                        + " sample sequence(s) in "
+                        + samplesLoadTimer.getTimeInSeconds()
+                        + " seconds.");
     }
 
     /**
@@ -47,10 +64,17 @@ public class Mapper {
      * @param k Kmer size.
      */
     public void generateReferenceKmerTrie(int k) {
+        Timer timer = new Timer();
+
         for (Map.Entry<String, DNASequence> entry : this.reference.entrySet()) {
             List<String> kmers = Transform.getKmers(entry.getValue().getSequenceAsString(), k);
             Trie trie = Trie.fromKmers(kmers);
             this.referenceTrie.add(trie);
         }
+
+        System.out.println(
+                "Generated reference sequence k-mer trie in "
+                        + timer.getTimeInSeconds()
+                        + " seconds.");
     }
 }

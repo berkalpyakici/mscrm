@@ -6,10 +6,8 @@ import edu.rice.comp416.mapper.util.Timer;
 import edu.rice.comp416.mapper.util.Transform;
 import edu.rice.comp416.mapper.util.Trie;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
 import org.biojava.nbio.core.sequence.DNASequence;
 import org.biojava.nbio.genome.io.fastq.Fastq;
 
@@ -23,7 +21,7 @@ public class Mapper {
     private final List<Trie> referenceTrie;
 
     /** List of FASTQ reads for sample genomes. */
-    private final List<Iterable<Fastq>> samples;
+    private final List<Iterator<Fastq>> samples;
 
     /**
      * Constructor for the mapper class.
@@ -40,7 +38,7 @@ public class Mapper {
         Timer samplesLoadTimer = new Timer();
         this.samples = new ArrayList<>();
         for (String sampleFile : sampleFiles) {
-            this.samples.add(ReadFastq.readFromFile(sampleFile));
+            this.samples.add(ReadFastq.readFromFile(sampleFile).iterator());
         }
         samplesLoadTimer.stop();
 
@@ -76,5 +74,44 @@ public class Mapper {
                 "Generated reference sequence k-mer trie in "
                         + timer.getTimeInSeconds()
                         + " seconds.");
+    }
+
+    public void map() {
+        while (true) {
+            List<Fastq> curReads = new ArrayList<>();
+
+            for (Iterator<Fastq> sample : this.samples) {
+                if (sample.hasNext()) {
+                    curReads.add(sample.next());
+                }
+            }
+
+            // There are no more reads. Halt.
+            if (curReads.isEmpty()) {
+                break;
+            }
+
+            // If one sample finished before others, then report error and halt.
+            if (this.samples.size() != curReads.size()) {
+                Main.reportError("Two reads...");
+                break;
+            }
+
+            Map<String, List<String>> curReadsSeq = new HashMap<>();
+            curReads.forEach(
+                    i -> {
+                        try {
+                            curReadsSeq.put(
+                                    i.getDescription(),
+                                    List.of(
+                                            i.getSequence(),
+                                            Transform.getReverseComplement(i.getSequence())));
+                        } catch (UnsupportedEncodingException e) {
+                            Main.reportError(e.getMessage());
+                        }
+                    });
+
+            System.out.println(curReadsSeq);
+        }
     }
 }

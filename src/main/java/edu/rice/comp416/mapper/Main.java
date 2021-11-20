@@ -81,6 +81,7 @@ public class Main {
         }
 
         mapper.generateReferenceKmerTrie(13);
+        mapper.map();
     }
 
     public static void reportMessage(String message) {

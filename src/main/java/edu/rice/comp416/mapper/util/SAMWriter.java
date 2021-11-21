@@ -1,30 +1,38 @@
 package edu.rice.comp416.mapper.util;
 
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileWriter;
-import htsjdk.samtools.SAMFileWriterFactory;
-import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.*;
 import java.nio.file.Paths;
-import java.util.Random;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.biojava.nbio.core.sequence.DNASequence;
+import org.biojava.nbio.genome.io.fastq.Fastq;
 
 public class SAMWriter {
+    private final SAMFileHeader fileHeader;
     private final SAMFileWriter fileWriter;
 
-    public SAMWriter(String path) {
-        SAMFileHeader header = new SAMFileHeader();
-        header.addComment("Test");
+    public SAMWriter(String path, LinkedHashMap<String, DNASequence> reference) {
+        this.fileHeader = new SAMFileHeader();
+        this.fileHeader.addComment(
+                "Genome-Scale Mapper (Katherine Dyson, Elizabeth Sims, Berk Alp Yakici)");
 
-        this.fileWriter = new SAMFileWriterFactory().makeSAMWriter(header, true, Paths.get(path));
+        for (Map.Entry<String, DNASequence> entry : reference.entrySet()) {
+            SAMSequenceRecord sequenceRecord =
+                    new SAMSequenceRecord(
+                            entry.getKey().split(" ")[0], entry.getValue().getLength());
+            this.fileHeader.addSequence(sequenceRecord);
+        }
+
+        this.fileWriter =
+                new SAMFileWriterFactory().makeSAMWriter(this.fileHeader, true, Paths.get(path));
     }
 
-    public void addAlignment(String readName, String readString, int startPos) {
-        SAMFileHeader header = new SAMFileHeader();
-        header.addComment("Test");
-
-        SAMRecord record = new SAMRecord(header);
-        record.setReadName(readName);
-        record.setAlignmentStart(new Random().nextInt(20));
-        record.setReadString(readString);
+    public void addAlignment(Fastq read, int startPos) {
+        SAMRecord record = new SAMRecord(this.fileHeader);
+        record.setReadName(read.getDescription());
+        record.setReadString(read.getSequence());
+        record.setBaseQualityString(read.getQuality());
+        record.setAlignmentStart(startPos);
 
         this.fileWriter.addAlignment(record);
     }

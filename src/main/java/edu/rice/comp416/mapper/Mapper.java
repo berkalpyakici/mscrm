@@ -2,6 +2,7 @@ package edu.rice.comp416.mapper;
 
 import edu.rice.comp416.mapper.reader.ReadFasta;
 import edu.rice.comp416.mapper.reader.ReadFastq;
+import edu.rice.comp416.mapper.util.SAMWriter;
 import edu.rice.comp416.mapper.util.Timer;
 import edu.rice.comp416.mapper.util.Transform;
 import edu.rice.comp416.mapper.util.Trie;
@@ -23,14 +24,18 @@ public class Mapper {
     /** List of FASTQ reads for sample genomes. */
     private final List<Iterator<Fastq>> samples;
 
+    private final SAMWriter samWriter;
+
     /**
      * Constructor for the mapper class.
      *
      * @param referenceFile Reference fasta file path.
      * @param sampleFiles List of sample fastq file paths.
+     * @param outFile Output sam file path.
      * @throws IOException If an exception occurs when fasta and fastq files are being read.
      */
-    public Mapper(String referenceFile, List<String> sampleFiles) throws IOException {
+    public Mapper(String referenceFile, List<String> sampleFiles, String outFile)
+            throws IOException {
         Timer referenceLoadTimer = new Timer();
         this.reference = ReadFasta.readFromFile(referenceFile);
         referenceLoadTimer.stop();
@@ -54,6 +59,8 @@ public class Mapper {
                         + " sample sequence(s) in "
                         + samplesLoadTimer.getTimeInSeconds()
                         + " seconds.");
+
+        this.samWriter = new SAMWriter(outFile, this.reference);
     }
 
     /**
@@ -106,6 +113,9 @@ public class Mapper {
                                     List.of(
                                             i.getSequence(),
                                             Transform.getReverseComplement(i.getSequence())));
+
+                            // TODO: This is here for testing file writing. Remove afterwards.
+                            this.samWriter.addAlignment(i, new Random().nextInt(20));
                         } catch (UnsupportedEncodingException e) {
                             Main.reportError(e.getMessage());
                         }
@@ -113,5 +123,7 @@ public class Mapper {
 
             System.out.println(curReadsSeq);
         }
+
+        this.samWriter.close();
     }
 }

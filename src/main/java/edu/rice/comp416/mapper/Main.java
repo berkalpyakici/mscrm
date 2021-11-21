@@ -33,6 +33,7 @@ public class Main {
         // Parse sample files and reference file.
         List<String> sampleFiles = new ArrayList<>();
         String refFile = "";
+        String outFile = "";
 
         for (String arg : args) {
             if (arg.endsWith(".fasta")) {
@@ -40,7 +41,17 @@ public class Main {
                     refFile = arg;
                 } else {
                     reportError(
-                            "Can only supply one reference file.\n"
+                            "Can only supply one reference FASTA file.\n"
+                                    + "\tTry '-h' for information on command-line syntax.\n");
+                    printHelpMessage();
+                    System.exit(1);
+                }
+            } else if (arg.endsWith(".sam")) {
+                if (outFile.isBlank()) {
+                    outFile = arg;
+                } else {
+                    reportError(
+                            "Can only supply one output SAM file.\n"
                                     + "\tTry '-h' for information on command-line syntax.\n");
                     printHelpMessage();
                     System.exit(1);
@@ -52,7 +63,15 @@ public class Main {
 
         if (refFile.isBlank()) {
             reportError(
-                    "A reference file must be supplied.\n"
+                    "A reference FASTA file must be supplied.\n"
+                            + "\tTry '-h' for information on command-line syntax.\n");
+            printHelpMessage();
+            System.exit(1);
+        }
+
+        if (outFile.isBlank()) {
+            reportError(
+                    "An output SAM file must be supplied.\n"
                             + "\tTry '-h' for information on command-line syntax.\n");
             printHelpMessage();
             System.exit(1);
@@ -60,7 +79,7 @@ public class Main {
 
         if (sampleFiles.isEmpty()) {
             reportError(
-                    "At least one sample file must be supplied.\n"
+                    "At least one sample FASTQ file must be supplied.\n"
                             + "\tTry '-h' for information on command-line syntax.\n");
             printHelpMessage();
             System.exit(1);
@@ -68,7 +87,7 @@ public class Main {
 
         Mapper mapper = null;
         try {
-            mapper = new Mapper(refFile, sampleFiles);
+            mapper = new Mapper(refFile, sampleFiles, outFile);
         } catch (FileNotFoundException e) {
             reportError(e.getMessage());
             System.exit(1);
@@ -97,17 +116,18 @@ public class Main {
         String helpMessage =
                 "Genome-Scale Mapper (Katherine Dyson, Elizabeth Sims, Berk Alp Yakici)\n"
                     + "Command syntax:\n"
-                    + "\tmap [OPTIONS] REF SAMPLE [SAMPLE SAMPLE...]\n"
+                    + "\tmap [OPTIONS] REF SAMPLE [SAMPLE SAMPLE...] OUT\n"
                     + "\n"
                     + "Required arguments:\n"
                     + "\tREF is the pathname (absolute or relative) to the reference fastq file\n"
                     + "\tSAMPLE is the pathname (absolute or relative) to the sample fasta file\n"
+                    + "\tOUT is the pathname (absolute or relative) to the output sam file\n"
                     + "\n"
                     + "Optional flags:\n"
                     + "\t-h\t  prints this message\n"
                     + "\n"
                     + "Example use:\n"
-                    + "\tmap reference.fasta sample1.fastq sample2.fastq";
+                    + "\tmap reference.fasta sample1.fastq sample2.fastq out.sam";
         System.out.println(helpMessage);
     }
 }

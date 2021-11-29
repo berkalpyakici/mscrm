@@ -9,6 +9,7 @@ import edu.rice.comp416.mapper.util.Trie;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.biojava.nbio.core.sequence.DNASequence;
 import org.biojava.nbio.genome.io.fastq.Fastq;
 
@@ -24,7 +25,11 @@ public class Mapper {
     /** List of FASTQ reads for sample genomes. */
     private final List<Iterator<Fastq>> samples;
 
+    /** SAM writer instance */
     private final SAMWriter samWriter;
+
+    /** Success threshold */
+    private static final double successThreshold = 0.2;
 
     /**
      * Constructor for the mapper class.
@@ -89,6 +94,9 @@ public class Mapper {
      * @param k Kmer size.
      */
     public void map(int k) {
+        Timer timer = new Timer();
+
+        int numReads = 0;
         while (true) {
             List<Fastq> curReads = new ArrayList<>();
 
@@ -109,47 +117,72 @@ public class Mapper {
                 break;
             }
 
-            Map<String, List<String>> curReadsSeq = new HashMap<>();
-            curReads.forEach(
-                    i -> {
-                        try {
-                            curReadsSeq.put(
-                                    i.getDescription(),
-                                    List.of(
-                                            i.getSequence(),
-                                            Transform.getReverseComplement(i.getSequence())));
+            numReads += curReads.size();
 
-                        } catch (UnsupportedEncodingException e) {
-                            Main.reportError(e.getMessage());
+            AtomicBoolean skipCurReads = new AtomicBoolean(false);
+            curReads.forEach(
+                    read -> {
+                        if (!skipCurReads.get()) {
+                            try {
+                                int beginPos;
+
+                                if ((beginPos = align(read.getSequence(), k)) >= 0) {
+                                    this.samWriter.addAlignment(read, beginPos);
+                                } else if ((beginPos =
+                                                align(
+                                                        Transform.getReverseComplement(
+                                                                read.getSequence()),
+                                                        k))
+                                        >= 0) {
+                                    this.samWriter.addAlignment(read, beginPos);
+                                } else {
+                                    skipCurReads.set(true);
+                                }
+                            } catch (UnsupportedEncodingException e) {
+                                Main.reportError(e.getMessage());
+                            }
                         }
                     });
-
-            align(curReadsSeq);
         }
+
+        System.out.println(
+                "Mapped " + numReads + " reads in " + timer.getTimeInSeconds() + " seconds.");
 
         this.samWriter.close();
     }
 
     /**
-     * Align given reads to the reference genome.
+     * Find alignment for read.
      *
-     * @param reads Reads.
+     * @param read Read sequence.
+     * @param k K-mer size.
+     * @return Position from beginning if aligned; if not, returns -1.
      */
-    private void align(Map<String, List<String>> reads) {
-        reads.forEach(
-                (name, sequences) -> {
-                    System.out.println("Aligning " + name + "...");
-                    sequences.forEach(
-                            sequence -> {
-                                System.out.println(sequence);
-                                Transform.getKmers(sequence, 13)
-                                        .forEach(
-                                                i -> {
-                                                    List<Integer> positions =
-                                                            this.referenceTrie.get(0).position(i);
-                                                    System.out.println(positions);
-                                                });
-                            });
-                });
+    private int align(String read, int k) {
+        int numRequiredMatches = (int) Math.round(read.length() * successThreshold);
+
+        int curMatches = 0;
+        int curConsensus = -1;
+
+        int offset = 0;
+        for (String kmer : Transform.getKmers(read, k)) {
+
+            for (int position : this.referenceTrie.get(0).position(kmer)) {
+                if (position - offset == curConsensus) {
+                    curMatches += 1;
+
+                    if (curMatches >= numRequiredMatches) {
+                        return curConsensus;
+                    }
+                } else {
+                    curMatches = 0;
+                    curConsensus = position - offset;
+                }
+            }
+
+            offset += 1;
+        }
+
+        return -1;
     }
 }

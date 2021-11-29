@@ -100,7 +100,7 @@ public class Main {
         }
 
         mapper.generateReferenceKmerTrie(13);
-        mapper.map();
+        mapper.map(13);
     }
 
     public static void reportMessage(String message) {

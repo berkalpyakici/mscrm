@@ -83,7 +83,12 @@ public class Mapper {
                         + " seconds.");
     }
 
-    public void map() {
+    /**
+     * Perform mapping of sample reads on reference genome.
+     *
+     * @param k Kmer size.
+     */
+    public void map(int k) {
         while (true) {
             List<Fastq> curReads = new ArrayList<>();
 
@@ -114,16 +119,37 @@ public class Mapper {
                                             i.getSequence(),
                                             Transform.getReverseComplement(i.getSequence())));
 
-                            // TODO: This is here for testing file writing. Remove afterwards.
-                            this.samWriter.addAlignment(i, new Random().nextInt(20));
                         } catch (UnsupportedEncodingException e) {
                             Main.reportError(e.getMessage());
                         }
                     });
 
-            System.out.println(curReadsSeq);
+            align(curReadsSeq);
         }
 
         this.samWriter.close();
+    }
+
+    /**
+     * Align given reads to the reference genome.
+     *
+     * @param reads Reads.
+     */
+    private void align(Map<String, List<String>> reads) {
+        reads.forEach(
+                (name, sequences) -> {
+                    System.out.println("Aligning " + name + "...");
+                    sequences.forEach(
+                            sequence -> {
+                                System.out.println(sequence);
+                                Transform.getKmers(sequence, 13)
+                                        .forEach(
+                                                i -> {
+                                                    List<Integer> positions =
+                                                            this.referenceTrie.get(0).position(i);
+                                                    System.out.println(positions);
+                                                });
+                            });
+                });
     }
 }

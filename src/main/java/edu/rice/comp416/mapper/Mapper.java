@@ -120,24 +120,34 @@ public class Mapper {
             numReads += curReads.size();
 
             AtomicBoolean skipCurReads = new AtomicBoolean(false);
+            AtomicBoolean skipToRevComp = new AtomicBoolean(false);
             curReads.forEach(
                     read -> {
                         if (!skipCurReads.get()) {
                             try {
                                 int beginPos;
 
-                                if ((beginPos = align(read.getSequence(), k)) >= 0) {
-                                    this.samWriter.addAlignment(read, beginPos);
-                                } else if ((beginPos =
-                                                align(
-                                                        Transform.getReverseComplement(
-                                                                read.getSequence()),
-                                                        k))
-                                        >= 0) {
-                                    this.samWriter.addAlignment(read, beginPos);
-                                } else {
-                                    skipCurReads.set(true);
+                                if (!skipToRevComp.get()) {
+                                    String curSeq = read.getSequence();
+                                    beginPos = align(curSeq, k);
+
+                                    if (beginPos >= 0) {
+                                        this.samWriter.addAlignment(read, beginPos);
+                                        skipToRevComp.set(true);
+                                        return;
+                                    }
                                 }
+
+                                String curSeqComp =
+                                        Transform.getReverseComplement(read.getSequence());
+                                beginPos = align(curSeqComp, k);
+
+                                if (beginPos >= 0) {
+                                    this.samWriter.addAlignment(read, beginPos);
+                                    return;
+                                }
+
+                                skipCurReads.set(true);
                             } catch (UnsupportedEncodingException e) {
                                 Main.reportError(e.getMessage());
                             }

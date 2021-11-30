@@ -1,8 +1,7 @@
 package edu.rice.comp416.mapper.util;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
 
 /** Utilities for string transformations. */
 public class Transform {
@@ -42,23 +41,56 @@ public class Transform {
     }
 
     /**
-     * Get an ordered list of k-mers of given size from the input sequence.
+     * Get an iterator over k-mers of given size from the input sequence.
      *
      * @param s Input sequence.
      * @param k K-mer size.
-     * @return Ordered list of k-mers.
+     * @return Iterator over k-mers.
      */
-    public static List<String> getKmers(String s, int k) {
-        List<String> kmers = new ArrayList<>();
+    public static Iterator<String> getKmers(String s, int k) {
+        if (getNumKmers(s, k) == 0) {
+            return new Iterator<>() {
+                @Override
+                public boolean hasNext() {
+                    return false;
+                }
 
+                @Override
+                public String next() {
+                    return null;
+                }
+            };
+        }
+
+        return new Iterator<>() {
+            private int i = 0;
+
+            @Override
+            public boolean hasNext() {
+                return i < getNumKmers(s, k);
+            }
+
+            @Override
+            public String next() {
+                String kmer = s.substring(i, i + k);
+                i += 1;
+                return kmer;
+            }
+        };
+    }
+
+    /**
+     * Gets the number of kmers.
+     *
+     * @param s Input sequence.
+     * @param k K-mer size.
+     * @return Number of kmers.
+     */
+    public static int getNumKmers(String s, int k) {
         if (k > s.length() || k <= 0) {
-            return kmers;
+            return 0;
         }
 
-        for (int i = 0; i < s.length() - k + 1; i++) {
-            kmers.add(s.substring(i, i + k));
-        }
-
-        return kmers;
+        return s.length() - k + 1;
     }
 }

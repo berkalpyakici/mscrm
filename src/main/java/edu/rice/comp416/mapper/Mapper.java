@@ -77,7 +77,7 @@ public class Mapper {
         Timer timer = new Timer();
 
         for (Map.Entry<String, DNASequence> entry : this.reference.entrySet()) {
-            List<String> kmers = Transform.getKmers(entry.getValue().getSequenceAsString(), k);
+            Iterator<String> kmers = Transform.getKmers(entry.getValue().getSequenceAsString(), k);
             Trie trie = Trie.fromKmers(kmers);
             this.referenceTrie.add(trie);
         }
@@ -165,8 +165,11 @@ public class Mapper {
         int curConsensus = -1;
 
         int offset = 0;
-        for (String kmer : Transform.getKmers(read, k)) {
 
+        Iterator<String> kmers = Transform.getKmers(read, k);
+
+        while (kmers.hasNext()) {
+            String kmer = kmers.next();
             for (int position : this.referenceTrie.get(0).position(kmer)) {
                 if (position - offset == curConsensus) {
                     curMatches += 1;

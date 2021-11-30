@@ -17,7 +17,7 @@ public class TrieTest {
         kmers.add("bef");
         kmers.add("abc");
 
-        trie = Trie.fromKmers(kmers, 0);
+        trie = Trie.fromKmers(kmers.iterator(), 0);
     }
 
     @Test

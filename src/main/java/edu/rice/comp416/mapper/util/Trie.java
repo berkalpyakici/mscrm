@@ -1,6 +1,7 @@
 package edu.rice.comp416.mapper.util;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /** Utilities for building tries. */
@@ -12,15 +13,16 @@ public class Trie {
     /**
      * Build trie from given kmers.
      *
-     * @param kmers List of kmers.
+     * @param kmers Iterator over kmers.
      * @param offset Offset for the position of first kmer in kmers.
      * @return An instance of Trie build from given kmers.
      */
-    public static Trie fromKmers(List<String> kmers, int offset) {
+    public static Trie fromKmers(Iterator<String> kmers, int offset) {
         Trie trie = new Trie();
 
         int i = 0;
-        for (String kmer : kmers) {
+        while (kmers.hasNext()) {
+            String kmer = kmers.next();
             Node curNode = trie.g;
             for (char c : kmer.toCharArray()) {
                 boolean foundInCurNode = false;
@@ -50,10 +52,10 @@ public class Trie {
     /**
      * Build trie from given kmers.
      *
-     * @param kmers List of kmers.
+     * @param kmers Iterator over kmers.
      * @return An instance of Trie build from given kmers.
      */
-    public static Trie fromKmers(List<String> kmers) {
+    public static Trie fromKmers(Iterator<String> kmers) {
         return fromKmers(kmers, 0);
     }
 

@@ -48,33 +48,25 @@ public class Transform {
      * @return Iterator over k-mers.
      */
     public static Iterator<String> getKmers(String s, int k) {
-        if (getNumKmers(s, k) == 0) {
-            return new Iterator<>() {
-                @Override
-                public boolean hasNext() {
-                    return false;
-                }
-
-                @Override
-                public String next() {
-                    return null;
-                }
-            };
-        }
+        final int numKmers = getNumKmers(s, k);
 
         return new Iterator<>() {
             private int i = 0;
 
             @Override
             public boolean hasNext() {
-                return i < getNumKmers(s, k);
+                return i < numKmers;
             }
 
             @Override
             public String next() {
-                String kmer = s.substring(i, i + k);
-                i += 1;
-                return kmer;
+                if (i < numKmers) {
+                    String kmer = s.substring(i, i + k);
+                    i += 1;
+                    return kmer;
+                } else {
+                    return null;
+                }
             }
         };
     }

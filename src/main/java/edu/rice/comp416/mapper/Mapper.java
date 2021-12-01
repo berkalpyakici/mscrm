@@ -9,7 +9,9 @@ import edu.rice.comp416.mapper.util.Trie;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import org.biojava.nbio.core.sequence.DNASequence;
 import org.biojava.nbio.genome.io.fastq.Fastq;
 
@@ -96,75 +98,123 @@ public class Mapper {
     public void map(int k) {
         Timer timer = new Timer();
 
-        int numReads = 0;
-        while (true) {
-            List<Fastq> curReads = new ArrayList<>();
+        int processors = Runtime.getRuntime().availableProcessors();
 
-            for (Iterator<Fastq> sample : this.samples) {
-                if (sample.hasNext()) {
-                    curReads.add(sample.next());
+        System.out.println("Running mapper on " + processors + " threads.");
+
+        // Here, we create executor service and a list of callable tasks.
+        ExecutorService executorService = Executors.newFixedThreadPool(processors);
+        List<Callable<List<Result>>> tasks = new ArrayList<>();
+
+        try {
+            int numReads = 0;
+            while (true) {
+                // Add current pair of samples to the reads array.
+                List<Fastq> curReads = new ArrayList<>();
+                for (Iterator<Fastq> sample : this.samples) {
+                    if (sample.hasNext()) {
+                        curReads.add(sample.next());
+                    }
+                }
+
+                // There are no more reads. Halt.
+                if (curReads.isEmpty()) {
+                    break;
+                }
+
+                // If one sample finished before others, then report error and halt.
+                if (this.samples.size() != curReads.size()) {
+                    Main.reportError("Two reads...");
+                    break;
+                }
+
+                // Increase number of reads.
+                numReads += curReads.size();
+
+                // Add all tasks to our list to execute in parallel.
+                tasks.add(() -> processPairReads(curReads, k));
+            }
+
+            // Invoke all processed to run them in parallel.
+            List<Future<List<Result>>> results = executorService.invokeAll(tasks);
+
+            // After all processes are complete, we iterate through them in a single process and
+            // write the results
+            // through samWriter.
+            for (Future<List<Result>> fr : results) {
+                List<Result> aligns = fr.get();
+
+                if (aligns.size() % 2 == 0 && !aligns.contains(null)) {
+                    aligns.forEach(
+                            align -> this.samWriter.addAlignment(align.getRead(), align.getPos()));
                 }
             }
 
-            // There are no more reads. Halt.
-            if (curReads.isEmpty()) {
-                break;
-            }
+            System.out.println(
+                    "Mapped " + numReads + " reads in " + timer.getTimeInSeconds() + " seconds.");
+        } catch (ExecutionException e) {
+            Main.reportError("An execution exception occurred. See stack trace for more details.");
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            Main.reportError(
+                    "An interrupted exception occurred. See stack trace for more details.");
+            e.printStackTrace();
+        } finally {
+            this.samWriter.close();
+            executorService.shutdown();
+        }
+    }
 
-            // If one sample finished before others, then report error and halt.
-            if (this.samples.size() != curReads.size()) {
-                Main.reportError("Two reads...");
-                break;
-            }
+    /**
+     * Process paired reads (that are taken from the same fragment).
+     *
+     * @param curReads List of paired reads that are taken from the same fragment.
+     * @param k Kmer size.
+     * @return List of results that include the mapped position (if mapped); else null.
+     */
+    private List<Result> processPairReads(List<Fastq> curReads, int k) {
+        AtomicBoolean skipCurReads = new AtomicBoolean(false);
+        AtomicBoolean skipToRevComp = new AtomicBoolean(false);
 
-            numReads += curReads.size();
+        return curReads.stream()
+                .map(
+                        read -> {
+                            if (!skipCurReads.get()) {
+                                try {
+                                    int beginPos;
 
-            AtomicBoolean skipCurReads = new AtomicBoolean(false);
-            AtomicBoolean skipToRevComp = new AtomicBoolean(false);
-            curReads.forEach(
-                    read -> {
-                        if (!skipCurReads.get()) {
-                            try {
-                                int beginPos;
+                                    if (!skipToRevComp.get()) {
+                                        String curSeq = read.getSequence();
+                                        beginPos = align(curSeq, k);
 
-                                if (!skipToRevComp.get()) {
-                                    String curSeq = read.getSequence();
-                                    beginPos = align(curSeq, k);
+                                        if (beginPos >= 0) {
+                                            skipToRevComp.set(true);
+                                            return new Result(read, beginPos);
+                                        }
+                                    }
+
+                                    String curSeqComp =
+                                            Transform.getReverseComplement(read.getSequence());
+                                    beginPos = align(curSeqComp, k);
 
                                     if (beginPos >= 0) {
-                                        this.samWriter.addAlignment(read, beginPos);
-                                        skipToRevComp.set(true);
-                                        return;
+                                        return new Result(read, beginPos);
                                     }
+
+                                    skipCurReads.set(true);
+                                } catch (UnsupportedEncodingException e) {
+                                    Main.reportError(e.getMessage());
                                 }
-
-                                String curSeqComp =
-                                        Transform.getReverseComplement(read.getSequence());
-                                beginPos = align(curSeqComp, k);
-
-                                if (beginPos >= 0) {
-                                    this.samWriter.addAlignment(read, beginPos);
-                                    return;
-                                }
-
-                                skipCurReads.set(true);
-                            } catch (UnsupportedEncodingException e) {
-                                Main.reportError(e.getMessage());
                             }
-                        }
-                    });
-        }
-
-        System.out.println(
-                "Mapped " + numReads + " reads in " + timer.getTimeInSeconds() + " seconds.");
-
-        this.samWriter.close();
+                            return null;
+                        })
+                .collect(Collectors.toList());
     }
 
     /**
      * Find alignment for read.
      *
-     * @param read Read sequence.
+     * @param read Individual read sequence.
      * @param k K-mer size.
      * @return Position from beginning if aligned; if not, returns -1.
      */
@@ -197,5 +247,24 @@ public class Mapper {
         }
 
         return -1;
+    }
+
+    /** Class to represent mapping results. */
+    static class Result {
+        private final Fastq read;
+        private final int pos;
+
+        public Result(Fastq read, int pos) {
+            this.read = read;
+            this.pos = pos;
+        }
+
+        public Fastq getRead() {
+            return this.read;
+        }
+
+        public int getPos() {
+            return this.pos;
+        }
     }
 }

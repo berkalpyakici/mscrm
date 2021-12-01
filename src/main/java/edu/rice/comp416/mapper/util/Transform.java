@@ -41,6 +41,21 @@ public class Transform {
     }
 
     /**
+     * Get reverse of a string.
+     *
+     * @param s Input sequence.
+     * @return Reverse of input sequence.
+     */
+    public static String getReverse(String s) {
+        StringBuilder r = new StringBuilder();
+        for (int i = s.length() - 1; i >= 0; i--) {
+            r.append(s.charAt(i));
+        }
+
+        return r.toString();
+    }
+
+    /**
      * Get an iterator over k-mers of given size from the input sequence.
      *
      * @param s Input sequence.

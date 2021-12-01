@@ -148,12 +148,12 @@ public class Mapper {
             for (Future<List<Result>> fr : results) {
                 List<Result> aligns = fr.get();
 
-                if (aligns.size() % 2 == 0 && !aligns.contains(null)) {
-                    aligns.forEach(
-                            align ->
-                                    this.samWriter.addAlignment(
-                                            align.getRead(), align.getPos(), align.getCigar()));
+                if (aligns.contains(null) || aligns.size() != 2) {
+                    continue;
                 }
+
+                this.samWriter.addAlignment(aligns.get(0), aligns.get(1), true, 99);
+                this.samWriter.addAlignment(aligns.get(1), aligns.get(0), false, 99);
             }
 
             System.out.println(
@@ -205,7 +205,13 @@ public class Mapper {
                                                                                     + read.getSequence()
                                                                                             .length()),
                                                             read.getSequence());
-                                            return new Result(read, beginPos, cigar);
+                                            return new Result(
+                                                    read.getDescription(),
+                                                    read.getSequence(),
+                                                    read.getQuality(),
+                                                    beginPos,
+                                                    cigar,
+                                                    false);
                                         }
                                     }
 
@@ -224,7 +230,13 @@ public class Mapper {
                                                                                 + read.getSequence()
                                                                                         .length()),
                                                         curSeqComp);
-                                        return new Result(read, beginPos, cigar);
+                                        return new Result(
+                                                read.getDescription(),
+                                                curSeqComp,
+                                                Transform.getReverse(read.getQuality()),
+                                                beginPos,
+                                                cigar,
+                                                true);
                                     }
 
                                     skipCurReads.set(true);
@@ -275,6 +287,14 @@ public class Mapper {
         return -1;
     }
 
+    /**
+     * Get cigar string from reference and read sequences.
+     *
+     * @implNote Assumes that length of reference and read are the same.
+     * @param ref Reference sequence.
+     * @param read Read sequence.
+     * @return Cigar string, only consisting of '=' and 'X' operands.
+     */
     private String getCigar(String ref, String read) {
         int count = 0;
         char op = '=';
@@ -312,19 +332,39 @@ public class Mapper {
     }
 
     /** Class to represent mapping results. */
-    static class Result {
-        private final Fastq read;
+    public static class Result {
+        private final String description;
+        private final String sequence;
+        private final String quality;
         private final int pos;
         private final String cigar;
+        private final boolean reversed;
 
-        public Result(Fastq read, int pos, String cigar) {
-            this.read = read;
+        public Result(
+                String description,
+                String sequence,
+                String quality,
+                int pos,
+                String cigar,
+                boolean reversed) {
+            this.description = description;
+            this.sequence = sequence;
+            this.quality = quality;
             this.pos = pos;
             this.cigar = cigar;
+            this.reversed = reversed;
         }
 
-        public Fastq getRead() {
-            return this.read;
+        public String getDescription() {
+            return this.description;
+        }
+
+        public String getSequence() {
+            return this.sequence;
+        }
+
+        public String getQuality() {
+            return this.quality;
         }
 
         public int getPos() {
@@ -333,6 +373,10 @@ public class Mapper {
 
         public String getCigar() {
             return this.cigar;
+        }
+
+        public boolean getReversed() {
+            return this.reversed;
         }
     }
 }

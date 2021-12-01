@@ -12,6 +12,11 @@ public class TransformTest {
     }
 
     @Test
+    public void testGetReverse() {
+        Assert.assertEquals("ABCDEFG", Transform.getReverse("GFEDCBA"));
+    }
+
+    @Test
     public void testGetKmersABCDEFG() {
         Iterator<String> test1 = Transform.getKmers("abcdefg", 3);
 

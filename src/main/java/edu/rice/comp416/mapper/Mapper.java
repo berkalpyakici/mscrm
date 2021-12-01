@@ -21,8 +21,11 @@ public class Mapper {
     /** Loaded FASTA file for reference genome. */
     private final LinkedHashMap<String, DNASequence> reference;
 
-    /** List of tries for each reference genome. */
+    /** List of tries for each reference genome. Assumes referenceTrie.size() == 1 */
     private final List<Trie> referenceTrie;
+
+    /** List of strings for each reference string. Assumes referenceString.size() == 1 */
+    private final List<String> referenceString;
 
     /** List of FASTQ reads for sample genomes. */
     private final List<Iterator<Fastq>> samples;
@@ -55,6 +58,7 @@ public class Mapper {
         samplesLoadTimer.stop();
 
         this.referenceTrie = new ArrayList<>();
+        this.referenceString = new ArrayList<>();
 
         System.out.println(
                 "Loaded reference sequence in "
@@ -82,6 +86,7 @@ public class Mapper {
             Iterator<String> kmers = Transform.getKmers(entry.getValue().getSequenceAsString(), k);
             Trie trie = Trie.fromKmers(kmers);
             this.referenceTrie.add(trie);
+            this.referenceString.add(entry.getValue().getSequenceAsString());
         }
 
         System.out.println(
@@ -139,14 +144,15 @@ public class Mapper {
             List<Future<List<Result>>> results = executorService.invokeAll(tasks);
 
             // After all processes are complete, we iterate through them in a single process and
-            // write the results
-            // through samWriter.
+            // write the results through samWriter.
             for (Future<List<Result>> fr : results) {
                 List<Result> aligns = fr.get();
 
                 if (aligns.size() % 2 == 0 && !aligns.contains(null)) {
                     aligns.forEach(
-                            align -> this.samWriter.addAlignment(align.getRead(), align.getPos()));
+                            align ->
+                                    this.samWriter.addAlignment(
+                                            align.getRead(), align.getPos(), align.getCigar()));
                 }
             }
 
@@ -189,7 +195,17 @@ public class Mapper {
 
                                         if (beginPos >= 0) {
                                             skipToRevComp.set(true);
-                                            return new Result(read, beginPos);
+                                            String cigar =
+                                                    getCigar(
+                                                            this.referenceString
+                                                                    .get(0)
+                                                                    .substring(
+                                                                            beginPos,
+                                                                            beginPos
+                                                                                    + read.getSequence()
+                                                                                            .length()),
+                                                            read.getSequence());
+                                            return new Result(read, beginPos, cigar);
                                         }
                                     }
 
@@ -198,7 +214,17 @@ public class Mapper {
                                     beginPos = align(curSeqComp, k);
 
                                     if (beginPos >= 0) {
-                                        return new Result(read, beginPos);
+                                        String cigar =
+                                                getCigar(
+                                                        this.referenceString
+                                                                .get(0)
+                                                                .substring(
+                                                                        beginPos,
+                                                                        beginPos
+                                                                                + read.getSequence()
+                                                                                        .length()),
+                                                        curSeqComp);
+                                        return new Result(read, beginPos, cigar);
                                     }
 
                                     skipCurReads.set(true);
@@ -249,14 +275,52 @@ public class Mapper {
         return -1;
     }
 
+    private String getCigar(String ref, String read) {
+        int count = 0;
+        char op = '=';
+
+        StringBuilder cigar = new StringBuilder();
+
+        for (int i = 0; i < ref.length(); i++) {
+            if (ref.charAt(i) == read.charAt(i)) {
+                if (op == '=') {
+                    count += 1;
+                } else {
+                    cigar.append(count);
+                    cigar.append(op);
+                    count = 1;
+                    op = '=';
+                }
+            } else {
+                if (op == 'X') {
+                    count += 1;
+                } else {
+                    cigar.append(count);
+                    cigar.append(op);
+                    count = 1;
+                    op = 'X';
+                }
+            }
+        }
+
+        if (count > 0) {
+            cigar.append(count);
+            cigar.append(op);
+        }
+
+        return cigar.toString();
+    }
+
     /** Class to represent mapping results. */
     static class Result {
         private final Fastq read;
         private final int pos;
+        private final String cigar;
 
-        public Result(Fastq read, int pos) {
+        public Result(Fastq read, int pos, String cigar) {
             this.read = read;
             this.pos = pos;
+            this.cigar = cigar;
         }
 
         public Fastq getRead() {
@@ -265,6 +329,10 @@ public class Mapper {
 
         public int getPos() {
             return this.pos;
+        }
+
+        public String getCigar() {
+            return this.cigar;
         }
     }
 }

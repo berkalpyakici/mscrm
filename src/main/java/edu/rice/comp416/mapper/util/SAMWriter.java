@@ -27,12 +27,13 @@ public class SAMWriter {
                 new SAMFileWriterFactory().makeSAMWriter(this.fileHeader, true, Paths.get(path));
     }
 
-    public void addAlignment(Fastq read, int startPos) {
+    public void addAlignment(Fastq read, int startPos, String cigar) {
         SAMRecord record = new SAMRecord(this.fileHeader);
         record.setReadName(read.getDescription());
         record.setReadString(read.getSequence());
         record.setBaseQualityString(read.getQuality());
         record.setAlignmentStart(startPos);
+        record.setCigarString(cigar);
 
         this.fileWriter.addAlignment(record);
     }

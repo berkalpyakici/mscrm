@@ -114,9 +114,9 @@ public class Main {
     /** Prints help message to console. */
     private static void printHelpMessage() {
         String helpMessage =
-                "Genome-Scale Mapper (Katherine Dyson, Elizabeth Sims, Berk Alp Yakici)\n"
+                "Multi-Seed Consensus Reference-Based Mapper\n"
                     + "Command syntax:\n"
-                    + "\tmap [OPTIONS] REF SAMPLE [SAMPLE SAMPLE...] OUT\n"
+                    + "\tmap [OPTIONS] REF SAMPLE SAMPLE OUT\n"
                     + "\n"
                     + "Required arguments:\n"
                     + "\tREF is the pathname (absolute or relative) to the reference fastq file\n"
